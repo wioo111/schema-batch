@@ -1,5 +1,9 @@
 # SchemaBatch
 
+[![Release](https://img.shields.io/github/v/release/wioo111/schema-batch?label=Release)](https://github.com/wioo111/schema-batch/releases/tag/v0.1.3)
+[![Windows](https://img.shields.io/badge/Windows-x64-blue)](https://github.com/wioo111/schema-batch/releases/tag/v0.1.3)
+[![License](https://img.shields.io/github/license/wioo111/schema-batch?label=License)](https://github.com/wioo111/schema-batch/blob/main/LICENSE)
+
 一个面向开源发布的桌面式 LLM 批处理工具。
 
 它只做一条主链路：
@@ -7,6 +11,14 @@
 > 导入表格或直接录入文本 -> 配置任务模板 -> 批量调用模型 -> 导出结构化结果
 
 项目当前定位是一个小而清晰的本地应用，不做大而全平台，不做网页后台，也不把爬虫当第一阶段主线。
+
+## 下载
+
+- Windows 安装包下载：[v0.1.3 Release](https://github.com/wioo111/schema-batch/releases/tag/v0.1.3)
+- 推荐下载：`SchemaBatch_0.1.0_x64-setup.exe`
+- 备选安装包：`SchemaBatch_0.1.0_x64_en-US.msi`
+- 适用人群：普通用户直接安装使用，不需要单独安装 `Python / Node.js / Rust`
+- 运行前准备：首次使用只需要填写你自己的模型 API Key
 
 ## 项目适合做什么
 
@@ -83,7 +95,7 @@ npm run tauri dev
 
 适合普通用户。
 
-- 去 GitHub 的 `Releases` 页面下载 Windows 安装包
+- 去 GitHub 的 `Releases` 页面下载 Windows 安装包：[v0.1.3 Release](https://github.com/wioo111/schema-batch/releases/tag/v0.1.3)
 - 安装后直接打开应用
 - 运行时只需要你自己的模型 API Key
 - 不需要单独安装 `Python / Node.js / Rust`
