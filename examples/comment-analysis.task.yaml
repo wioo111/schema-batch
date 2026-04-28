@@ -1,0 +1,53 @@
+name: "评论结构化分析模板"
+description: "一个适合开源 MVP 的示例模板：把评论或回复批量转换为结构化字段。"
+
+llm:
+  model: "qwen-plus"
+  temperature: 0.1
+  api_key_env: "DASHSCOPE_API_KEY"
+  # 可选：如果你使用兼容 OpenAI SDK 的第三方服务，填入 base_url
+  # base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+input:
+  columns:
+    - name: "评论内容"
+      label: "主评论"
+    - name: "二级评论内容"
+      label: "回复"
+  join_separator: " | "
+
+prompt:
+  system: |
+    你是一个严谨的文本结构化分析助手。
+
+    你需要根据用户提供的全局背景，对输入文本进行稳定、克制、可复用的结构化抽取。
+
+    全局背景：
+    {global_context}
+
+    输出必须是合法 JSON，不要输出 markdown，不要补充解释。
+  user: |
+    请阅读以下文本，并按照预定义字段返回 JSON：
+
+    {text}
+
+    字段要求：
+    1. 情感倾向：积极 / 中性 / 消极 / 极度消极
+    2. 是否存在解构情绪：是 / 否
+    3. 社会信任敏感度：高 / 中 / 低
+    4. 危害领域归属：健康危害 / 经济危害 / 社会稳定 / 其他吃瓜
+    5. 核心观点：15 字以内概括
+
+output:
+  include_combined_text: true
+  fields:
+    - name: "情感倾向"
+      default: ""
+    - name: "是否存在解构情绪"
+      default: ""
+    - name: "社会信任敏感度"
+      default: ""
+    - name: "危害领域归属"
+      default: ""
+    - name: "核心观点"
+      default: ""

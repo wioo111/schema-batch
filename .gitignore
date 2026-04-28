@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.DS_Store
+node_modules/
+dist/
+src-tauri/target/
+.udr/
+
+# local data / outputs
+*.xlsx
+*.xls
+*.csv
+!examples/*.csv
+!examples/*.xlsx
+!examples/*.xls
+
+# secrets
+.env
+.env.local
+.env.*.local

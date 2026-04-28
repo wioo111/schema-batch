@@ -1,0 +1,53 @@
+{
+  "id": "comment-analysis",
+  "name": "评论结构化模板",
+  "description": "面向评论文本的情感、立场与观点抽取模板。",
+  "inputColumns": [
+    {
+      "name": "评论内容",
+      "label": "主评论"
+    },
+    {
+      "name": "二级评论内容",
+      "label": "回复"
+    }
+  ],
+  "preprocess": {
+    "trimWhitespace": true,
+    "collapseWhitespace": true,
+    "removeLineBreaks": false,
+    "stripHtml": false,
+    "maxChars": 4000
+  },
+  "joinSeparator": " | ",
+  "systemPrompt": "你是一个严谨的文本结构化分析助手。输出必须是合法 JSON，不要输出 markdown。",
+  "userPrompt": "请阅读以下文本，并按照预定义字段返回 JSON：\n\n{text}",
+  "outputFields": [
+    {
+      "name": "情感倾向",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "是否存在解构情绪",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "社会信任敏感度",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "危害领域归属",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "核心观点",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "includeCombinedText": true
+}

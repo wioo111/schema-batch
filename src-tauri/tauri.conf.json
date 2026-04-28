@@ -1,0 +1,26 @@
+﻿{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Universal Data Refiner",
+  "version": "0.1.0",
+  "identifier": "com.universaldatarefiner.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Universal Data Refiner",
+        "width": 1280,
+        "height": 860,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  }
+}
