@@ -10,7 +10,7 @@ $pyInstallerDistDir = Join-Path $repoRoot "dist-python"
 $pyInstallerSpecDir = Join-Path $repoRoot "build"
 
 if (-not (Test-Path $engineSource)) {
-  throw "未找到 Python 引擎脚本: $engineSource"
+  throw "未找到 Python 引擎脚本: ${engineSource}"
 }
 
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
@@ -40,11 +40,11 @@ python -m PyInstaller `
 
 $generatedExe = Join-Path $pyInstallerDistDir "schema-batch-engine.exe"
 if (-not (Test-Path $generatedExe)) {
-  throw "PyInstaller 构建完成后未找到 exe: $generatedExe"
+  throw "PyInstaller 构建完成后未找到 exe: ${generatedExe}"
 }
 
 Copy-Item -Force $generatedExe $outputExe
 
 Write-Host ""
 Write-Host "== Done =="
-Write-Host "Engine output: $outputExe"
+Write-Host "Engine output: ${outputExe}"
