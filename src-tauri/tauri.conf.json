@@ -22,6 +22,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "icon": [
+      "icons/icon.ico"
+    ],
     "resources": {
       "../templates": "bootstrap/templates",
       "binaries/schema-batch-engine.exe": "bin/schema-batch-engine.exe"
