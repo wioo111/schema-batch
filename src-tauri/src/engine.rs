@@ -11,7 +11,10 @@ use calamine::{open_workbook_auto, Reader};
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
+
+const BUNDLED_ENGINE_RELATIVE_PATH: &str = "bin/schema-batch-engine.exe";
+const BUNDLED_TEMPLATES_RELATIVE_PATH: &str = "bootstrap/templates";
 
 #[derive(Default)]
 pub struct RunStore {
@@ -32,6 +35,21 @@ struct RunRecord {
     output_fields: Vec<String>,
     updated_at: String,
     child: Option<Child>,
+}
+
+struct AppPaths {
+    data_dir: PathBuf,
+    autosave_dir: PathBuf,
+    templates_dir: PathBuf,
+    runs_dir: PathBuf,
+    resource_dir: Option<PathBuf>,
+}
+
+struct EngineCommandSpec {
+    program: PathBuf,
+    args: Vec<String>,
+    current_dir: PathBuf,
+    display_name: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -280,20 +298,16 @@ struct GeneratedOutputField {
 
 #[tauri::command]
 pub fn start_run(
+    app: AppHandle,
     payload: StartRunPayload,
     state: State<'_, RunStore>,
 ) -> Result<RunJobResponse, String> {
-    let repo_root = repo_root()?;
-    let engine_script = repo_root.join("universal_engine.py");
-    if !engine_script.exists() {
-        return Err(format!(
-            "未找到 Python 引擎文件: {}",
-            engine_script.display()
-        ));
-    }
+    let app_paths = AppPaths::resolve(&app)?;
+    ensure_app_dirs(&app_paths)?;
+    ensure_seeded_templates(&app)?;
 
     let run_id = format!("run-{}", now_string());
-    let run_dir = repo_root.join(".udr").join("runs").join(&run_id);
+    let run_dir = app_paths.runs_dir.join(&run_id);
     fs::create_dir_all(&run_dir).map_err(|err| format!("创建运行目录失败: {err}"))?;
     let source_path = prepare_project_input_source(&payload.project, &run_dir)?;
     validate_start_payload(&payload, &source_path)?;
@@ -315,16 +329,18 @@ pub fn start_run(
         File::create(&stderr_path).map_err(|err| format!("创建 stderr 日志失败: {err}"))?;
 
     let total_rows = count_input_rows(&source_path)?;
-    let python_executable = payload
-        .project
-        .python_executable
-        .clone()
-        .unwrap_or_else(|| "python".to_string());
+    let engine_command =
+        resolve_engine_command(&app, payload.project.python_executable.as_deref())?;
 
-    let mut command = Command::new(&python_executable);
+    let mut command = Command::new(&engine_command.program);
     command
-        .current_dir(&repo_root)
-        .arg(engine_script)
+        .current_dir(&engine_command.current_dir);
+
+    for arg in &engine_command.args {
+        command.arg(arg);
+    }
+
+    command
         .arg("-c")
         .arg(&config_path)
         .arg("-i")
@@ -356,7 +372,12 @@ pub fn start_run(
 
     let child = command
         .spawn()
-        .map_err(|err| format!("启动 Python 引擎失败，请确认 `{python_executable}` 可用: {err}"))?;
+        .map_err(|err| {
+            format!(
+                "启动批处理引擎失败，请检查内置引擎资源或开发环境配置。当前命令入口: {}。错误: {err}",
+                engine_command.display_name
+            )
+        })?;
 
     let output_fields = payload
         .project
@@ -731,15 +752,15 @@ pub fn load_project(file_path: Option<String>) -> Result<LoadedProjectResponse, 
 }
 
 #[tauri::command]
-pub fn save_autosave_project(project: ProjectFilePayload) -> Result<String, String> {
-    let autosave_path = autosave_project_path()?;
+pub fn save_autosave_project(app: AppHandle, project: ProjectFilePayload) -> Result<String, String> {
+    let autosave_path = autosave_project_path(&app)?;
     write_project_file(&autosave_path, &project)?;
     Ok(autosave_path.display().to_string())
 }
 
 #[tauri::command]
-pub fn load_autosave_project() -> Result<Option<LoadedProjectResponse>, String> {
-    let autosave_path = autosave_project_path()?;
+pub fn load_autosave_project(app: AppHandle) -> Result<Option<LoadedProjectResponse>, String> {
+    let autosave_path = autosave_project_path(&app)?;
     if !autosave_path.exists() {
         return Ok(None);
     }
@@ -756,12 +777,8 @@ pub fn load_autosave_project() -> Result<Option<LoadedProjectResponse>, String> 
 }
 
 #[tauri::command]
-pub fn list_templates() -> Result<Vec<TemplateSummaryResponse>, String> {
-    let templates_dir = templates_dir()?;
-    if !templates_dir.exists() {
-        fs::create_dir_all(&templates_dir)
-            .map_err(|err| format!("创建模板目录失败: {err}"))?;
-    }
+pub fn list_templates(app: AppHandle) -> Result<Vec<TemplateSummaryResponse>, String> {
+    let templates_dir = templates_dir(&app)?;
 
     let mut templates = Vec::new();
     for entry in fs::read_dir(&templates_dir).map_err(|err| format!("读取模板目录失败: {err}"))? {
@@ -804,13 +821,14 @@ pub fn load_template(file_path: String) -> Result<LoadedTemplateResponse, String
 
 #[tauri::command]
 pub fn save_template(
+    app: AppHandle,
     template: TaskTemplatePayload,
     target_path: Option<String>,
 ) -> Result<String, String> {
     let selected_path = match target_path {
         Some(path) if !path.trim().is_empty() => PathBuf::from(path),
         _ => {
-            let default_dir = templates_dir()?;
+            let default_dir = templates_dir(&app)?;
             fs::create_dir_all(&default_dir)
                 .map_err(|err| format!("创建模板目录失败: {err}"))?;
             FileDialog::new()
@@ -1609,15 +1627,167 @@ fn write_template_file(path: &Path, template: &TaskTemplatePayload) -> Result<()
     Ok(())
 }
 
-fn autosave_project_path() -> Result<PathBuf, String> {
-    Ok(repo_root()?
-        .join(".udr")
-        .join("autosave")
+impl AppPaths {
+    fn resolve(app: &AppHandle) -> Result<Self, String> {
+        let data_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|err| format!("定位应用数据目录失败: {err}"))?;
+        let resource_dir = app.path().resource_dir().ok();
+
+        Ok(Self {
+            autosave_dir: data_dir.join("autosave"),
+            templates_dir: data_dir.join("templates"),
+            runs_dir: data_dir.join("runs"),
+            data_dir,
+            resource_dir,
+        })
+    }
+}
+
+fn ensure_app_dirs(app_paths: &AppPaths) -> Result<(), String> {
+    for dir in [
+        &app_paths.data_dir,
+        &app_paths.autosave_dir,
+        &app_paths.templates_dir,
+        &app_paths.runs_dir,
+    ] {
+        fs::create_dir_all(dir).map_err(|err| format!("创建应用目录失败 {}: {err}", dir.display()))?;
+    }
+    Ok(())
+}
+
+fn resolve_template_seed_dir(app_paths: &AppPaths) -> Option<PathBuf> {
+    if let Some(resource_dir) = &app_paths.resource_dir {
+        let bundled_templates_dir = resource_dir.join(BUNDLED_TEMPLATES_RELATIVE_PATH);
+        if bundled_templates_dir.exists() {
+            return Some(bundled_templates_dir);
+        }
+    }
+
+    let repo_templates_dir = repo_root().ok()?.join("templates");
+    if repo_templates_dir.exists() {
+        Some(repo_templates_dir)
+    } else {
+        None
+    }
+}
+
+fn copy_missing_dir_contents(source_dir: &Path, target_dir: &Path) -> Result<(), String> {
+    if !source_dir.exists() {
+        return Ok(());
+    }
+
+    fs::create_dir_all(target_dir)
+        .map_err(|err| format!("创建目标目录失败 {}: {err}", target_dir.display()))?;
+
+    for entry in fs::read_dir(source_dir)
+        .map_err(|err| format!("读取目录失败 {}: {err}", source_dir.display()))?
+    {
+        let entry = entry.map_err(|err| format!("读取目录项失败: {err}"))?;
+        let source_path = entry.path();
+        let target_path = target_dir.join(entry.file_name());
+
+        if source_path.is_dir() {
+            copy_missing_dir_contents(&source_path, &target_path)?;
+            continue;
+        }
+
+        if !target_path.exists() {
+            fs::copy(&source_path, &target_path).map_err(|err| {
+                format!(
+                    "复制内置资源失败 {} -> {}: {err}",
+                    source_path.display(),
+                    target_path.display()
+                )
+            })?;
+        }
+    }
+
+    Ok(())
+}
+
+fn ensure_seeded_templates(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_paths = AppPaths::resolve(app)?;
+    ensure_app_dirs(&app_paths)?;
+
+    if let Some(seed_dir) = resolve_template_seed_dir(&app_paths) {
+        copy_missing_dir_contents(&seed_dir, &app_paths.templates_dir)?;
+    }
+
+    Ok(app_paths.templates_dir)
+}
+
+fn autosave_project_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(AppPaths::resolve(app)?
+        .autosave_dir
         .join("latest-project.udr.json"))
 }
 
-fn templates_dir() -> Result<PathBuf, String> {
-    Ok(repo_root()?.join("templates"))
+fn templates_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    ensure_seeded_templates(app)
+}
+
+fn resolve_engine_command(
+    app: &AppHandle,
+    preferred_python_executable: Option<&str>,
+) -> Result<EngineCommandSpec, String> {
+    let app_paths = AppPaths::resolve(app)?;
+    ensure_app_dirs(&app_paths)?;
+
+    if let Ok(override_path) = std::env::var("SCHEMABATCH_ENGINE_PATH") {
+        let override_program = PathBuf::from(override_path.trim());
+        if override_program.exists() {
+            return Ok(EngineCommandSpec {
+                display_name: override_program.display().to_string(),
+                program: override_program,
+                args: Vec::new(),
+                current_dir: app_paths.data_dir.clone(),
+            });
+        }
+    }
+
+    if let Some(resource_dir) = &app_paths.resource_dir {
+        let bundled_engine = resource_dir.join(BUNDLED_ENGINE_RELATIVE_PATH);
+        if bundled_engine.exists() {
+            return Ok(EngineCommandSpec {
+                display_name: bundled_engine.display().to_string(),
+                program: bundled_engine,
+                args: Vec::new(),
+                current_dir: app_paths.data_dir.clone(),
+            });
+        }
+    }
+
+    if let Ok(repo_root) = repo_root() {
+        let local_engine = repo_root.join("src-tauri").join("binaries").join("schema-batch-engine.exe");
+        if local_engine.exists() {
+            return Ok(EngineCommandSpec {
+                display_name: local_engine.display().to_string(),
+                program: local_engine,
+                args: Vec::new(),
+                current_dir: repo_root.clone(),
+            });
+        }
+
+        let engine_script = repo_root.join("schema_batch_engine.py");
+        if engine_script.exists() {
+            let python_program = preferred_python_executable
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or("python");
+            return Ok(EngineCommandSpec {
+                display_name: python_program.to_string(),
+                program: PathBuf::from(python_program),
+                args: vec![engine_script.display().to_string()],
+                current_dir: repo_root,
+            });
+        }
+    }
+
+    Err(
+        "未找到可用的批处理引擎。发布版请确认安装包内置了 engine 资源；开发版请确认 `schema_batch_engine.py` 存在。"
+            .to_string(),
+    )
 }
 
 fn slugify(value: &str) -> String {

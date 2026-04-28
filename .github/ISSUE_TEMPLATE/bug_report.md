@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a reproducible defect in Universal Data Refiner
+about: Report a reproducible defect in SchemaBatch
 title: "[Bug] "
 labels: ["bug"]
 assignees: []

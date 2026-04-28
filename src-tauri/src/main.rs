@@ -25,5 +25,5 @@ fn main() {
             engine::export_result
         ])
         .run(tauri::generate_context!())
-        .expect("failed to run Universal Data Refiner desktop shell");
+        .expect("failed to run SchemaBatch desktop shell");
 }

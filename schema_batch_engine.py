@@ -17,7 +17,7 @@ class SafeDict(dict):
         return "{" + key + "}"
 
 
-class UniversalDataRefiner:
+class SchemaBatchEngine:
     def __init__(
         self,
         config_path,
@@ -582,7 +582,7 @@ class UniversalDataRefiner:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Universal Data Refining Engine (Powered by LLM)"
+        description="SchemaBatch Engine"
     )
     parser.add_argument("-c", "--config", required=True, help="YAML 配置文件的路径")
     parser.add_argument("-i", "--input", required=True, help="输入的 Excel/CSV 文件路径")
@@ -599,7 +599,7 @@ def main():
     if os.name == "nt":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    engine = UniversalDataRefiner(
+    engine = SchemaBatchEngine(
         config_path=args.config,
         input_file=args.input,
         output_file=args.output,

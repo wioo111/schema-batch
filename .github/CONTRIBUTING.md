@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to Universal Data Refiner.
+Thanks for contributing to SchemaBatch.
 
 ## Before You Start
 
@@ -33,7 +33,7 @@ npm run tauri dev
 
 ```bash
 npm run build
-python -m py_compile universal_engine.py
+python -m py_compile schema_batch_engine.py
 cd src-tauri
 cargo check
 ```

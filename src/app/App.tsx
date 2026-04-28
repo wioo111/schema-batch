@@ -23,11 +23,12 @@ import { engineBridge } from "../services/engineBridge";
 const defaultInputColumnsText = ["评论内容|主评论", "二级评论内容|回复"].join("\n");
 
 const defaultOutputFieldsText = [
+  "主题分类|string|true|",
   "情感倾向|string|true|",
-  "是否存在解构情绪|string|true|",
-  "社会信任敏感度|string|true|",
-  "危害领域归属|string|true|",
-  "核心观点|string|true|",
+  "风险等级|string|true|",
+  "立场态度|string|false|",
+  "核心诉求|string|false|",
+  "处置建议|string|false|",
 ].join("\n");
 
 const sectionStyle = {
@@ -35,6 +36,9 @@ const sectionStyle = {
   borderRadius: 12,
   padding: 16,
   background: "#ffffff",
+  width: "100%",
+  minWidth: 0,
+  boxSizing: "border-box",
 } satisfies React.CSSProperties;
 
 const labelStyle = {
@@ -109,26 +113,27 @@ const userPromptSnippets = [
 const taskTemplatePresets = [
   {
     key: "comment-analysis",
-    title: "评论分析",
-    description: "适合评论、回复、弹幕、短文本反馈的结构化分析。",
+    title: "舆情分析",
+    description: "适合评论、帖子、回复、反馈文本的一般舆情分析与结构化研判。",
     accent: "#0969da",
-    tags: ["评论", "观点", "风险"],
-    outputPreview: ["情感倾向", "核心观点", "风险归类"],
+    tags: ["主题", "情绪", "风险"],
+    outputPreview: ["主题分类", "情感倾向", "风险等级"],
     templateId: "comment-analysis",
-    templateName: "评论结构化分析",
-    templateDescription: "面向评论文本的结构化抽取模板。",
+    templateName: "舆情结构化分析",
+    templateDescription: "面向一般舆情文本的结构化分析模板，适合评论、帖子、回复和用户反馈场景。",
     inputColumnsText: ["评论内容|主评论", "二级评论内容|回复"].join("\n"),
     outputFieldsText: [
+      "主题分类|string|true|",
       "情感倾向|string|true|",
-      "是否存在解构情绪|string|true|",
-      "社会信任敏感度|string|true|",
-      "危害领域归属|string|true|",
-      "核心观点|string|true|",
+      "风险等级|string|true|",
+      "立场态度|string|false|",
+      "核心诉求|string|false|",
+      "处置建议|string|false|",
     ].join("\n"),
     systemPrompt:
-      "你是一个严谨的评论结构化分析助手。只返回合法 JSON 对象，不要输出 markdown，不要补充解释。",
+      "你是一个严谨的舆情结构化分析助手。只返回合法 JSON 对象，不要输出 markdown，不要补充解释。",
     userPrompt:
-      "任务背景：\n{context}\n\n请阅读下面的评论文本，识别情绪、核心观点和风险归属，并按输出字段定义返回 JSON：\n\n{text}",
+      "任务背景：\n{context}\n\n请阅读下面的舆情文本，识别主题分类、情感倾向、风险等级、立场态度与核心诉求，并按输出字段定义返回 JSON：\n\n{text}",
   },
   {
     key: "classification",
@@ -1050,9 +1055,9 @@ export function App() {
   const [projectFilePath, setProjectFilePath] = useState("");
   const [templateFilePath, setTemplateFilePath] = useState("");
   const [templateId, setTemplateId] = useState("comment-analysis");
-  const [templateName, setTemplateName] = useState("评论结构化模板");
+  const [templateName, setTemplateName] = useState("舆情结构化模板");
   const [templateDescription, setTemplateDescription] = useState(
-    "面向评论文本的结构化抽取模板。"
+    "面向一般舆情文本的结构化分析模板。"
   );
   const [templateCatalog, setTemplateCatalog] = useState<TemplateSummary[]>([]);
   const [selectedTemplatePath, setSelectedTemplatePath] = useState("");
@@ -1062,7 +1067,7 @@ export function App() {
   const [removeLineBreaks, setRemoveLineBreaks] = useState(false);
   const [stripHtml, setStripHtml] = useState(false);
   const [maxCharsText, setMaxCharsText] = useState("4000");
-  const [projectName, setProjectName] = useState("评论结构化分析");
+  const [projectName, setProjectName] = useState("舆情结构化分析");
   const [inputSourceMode, setInputSourceMode] = useState<InputSourceMode>("inline");
   const [inlineInputText, setInlineInputText] = useState("");
   const [sourceFilePath, setSourceFilePath] = useState("");
@@ -1286,10 +1291,10 @@ export function App() {
       },
       {
         index: 3,
-        title: "启动检查",
+        title: "模型与启动",
         level: checkLevel,
         summary: checkSummary,
-        sectionId: "section-ready-check",
+        sectionId: "section-run",
         meta: `请求预览 ${isInputPreviewFresh ? "已更新" : "待刷新"} / 输出预检 ${
           isOutputPreflightFresh ? "已更新" : "待刷新"
         }`,
@@ -1299,7 +1304,7 @@ export function App() {
         title: "运行结果",
         level: runLevel,
         summary: runSummary,
-        sectionId: "section-run",
+        sectionId: "section-run-status",
         meta: activeRunId ? `运行 ID: ${activeRunId}` : "尚未开始",
       },
     ];
@@ -2377,7 +2382,7 @@ export function App() {
   return (
     <main
       style={{
-        maxWidth: 1280,
+        maxWidth: 1480,
         margin: "0 auto",
         padding: 24,
         display: "grid",
@@ -2388,7 +2393,7 @@ export function App() {
       }}
     >
       <section style={sectionStyle}>
-        <h1 style={{ marginTop: 0, marginBottom: 8 }}>Universal Data Refiner</h1>
+        <h1 style={{ marginTop: 0, marginBottom: 8 }}>SchemaBatch</h1>
         <p style={{ margin: 0, lineHeight: 1.6 }}>
           当前界面已经按桌面工具的操作顺序收敛成可视流程：先准备数据，再选任务模板，确认启动检查，最后运行和导出。
         </p>
@@ -2505,7 +2510,7 @@ export function App() {
       </section>
 
       <section id="section-ready-check" style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>3. Ready Check</h2>
+        <h2 style={{ marginTop: 0 }}>4. 启动检查详情</h2>
         <p style={{ marginTop: 0, color: "#57606a", fontSize: 13 }}>
           这里把输入、请求预览、输出预检和模型配置收敛成一个启动前总览。
         </p>
@@ -2588,7 +2593,7 @@ export function App() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>1. 输入预览</h2>
+        <h2 style={{ marginTop: 0 }}>5. 输入预览</h2>
         <div style={{ display: "grid", gap: 12 }}>
           {inputPreview.length === 0 ? (
             <p style={{ margin: 0, color: "#57606a" }}>
@@ -2684,8 +2689,9 @@ export function App() {
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
           gap: 16,
+          alignItems: "start",
         }}
       >
         <div id="section-data" style={sectionStyle}>
@@ -3070,13 +3076,14 @@ export function App() {
                       key={`column-editor-${column.name}-${columnIndex}`}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "minmax(120px, 1fr) minmax(120px, 1fr) auto auto auto",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
                         gap: 8,
                         alignItems: "center",
                         border: "1px solid #d0d7de",
                         borderRadius: 8,
                         padding: "8px 10px",
                         background: "#fff",
+                        minWidth: 0,
                       }}
                     >
                       <input
@@ -3189,7 +3196,7 @@ export function App() {
               </button>
               {showAdvancedSettings ? (
                 <label style={labelStyle}>
-                  Python 可执行文件
+                  Python 可执行文件（仅开发态回退）
                   <input
                     style={inputStyle}
                     value={pythonExecutable}
@@ -3241,7 +3248,7 @@ export function App() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
                   gap: 12,
                 }}
               >
@@ -3350,14 +3357,14 @@ export function App() {
               模板目录
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto auto auto",
+                  display: "flex",
+                  flexWrap: "wrap",
                   gap: 8,
                   alignItems: "center",
                 }}
               >
                 <select
-                  style={inputStyle}
+                  style={{ ...inputStyle, flex: "1 1 260px", minWidth: 220 }}
                   value={selectedTemplatePath}
                   onChange={(event) => setSelectedTemplatePath(event.target.value)}
                 >
@@ -3645,14 +3652,14 @@ export function App() {
                       key={`output-field-${field.name}-${fieldIndex}`}
                       style={{
                         display: "grid",
-                        gridTemplateColumns:
-                          "minmax(140px, 1.3fr) minmax(120px, 0.8fr) auto minmax(140px, 1fr) auto",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
                         gap: 8,
                         alignItems: "center",
                         border: "1px solid #d0d7de",
                         borderRadius: 8,
                         padding: "8px 10px",
                         background: "#fff",
+                        minWidth: 0,
                       }}
                     >
                       <input
@@ -3674,7 +3681,16 @@ export function App() {
                         <option value="number">number</option>
                         <option value="boolean">boolean</option>
                       </select>
-                      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+                      <label
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          fontSize: 13,
+                          whiteSpace: "nowrap",
+                          minHeight: 42,
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={field.required}
@@ -3740,16 +3756,20 @@ export function App() {
               `string / number / boolean`，默认值会按当前类型自动解释。
             </p>
             <p style={{ margin: 0, fontSize: 13, color: "#57606a" }}>
+              一般舆情分析建议至少保留 `主题分类 / 情感倾向 / 风险等级`，需要更细的研判时，再补
+              `立场态度 / 核心诉求 / 处置建议` 这类字段。
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: "#57606a" }}>
               文件导入模式会检查输入文件是否真的包含这些列；程序内录入模式会直接按这些列生成临时表。
             </p>
             <p style={{ margin: 0, fontSize: 13, color: "#57606a" }}>
-              模板列表来自仓库 `templates/` 目录，当前共 {templateCatalog.length} 个模板。
+              模板列表来自应用本地模板目录；首次启动会自动导入内置模板，当前共 {templateCatalog.length} 个模板。
             </p>
           </div>
         </div>
 
         <div id="section-run" style={sectionStyle}>
-          <h2 style={{ marginTop: 0 }}>4. 模型与运行</h2>
+          <h2 style={{ marginTop: 0 }}>3. 模型与启动</h2>
           <div style={{ display: "grid", gap: 12 }}>
             <label style={labelStyle}>
               模型名称
@@ -4007,7 +4027,7 @@ export function App() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>3. 输出预检</h2>
+        <h2 style={{ marginTop: 0 }}>6. 输出预检</h2>
         <p style={{ marginTop: 0, color: "#57606a", fontSize: 13 }}>
           这里检查输出字段和 prompt 约束是否明显失配。修改模板后，建议重新跑一次预检。
         </p>
@@ -4051,8 +4071,8 @@ export function App() {
         </div>
       </section>
 
-      <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>4. 运行状态</h2>
+      <section id="section-run-status" style={sectionStyle}>
+        <h2 style={{ marginTop: 0 }}>7. 运行状态</h2>
         {runJob ? (
           <div style={{ display: "grid", gap: 12 }}>
             <article
@@ -4200,7 +4220,7 @@ export function App() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>4. 结果导出</h2>
+        <h2 style={{ marginTop: 0 }}>8. 结果导出</h2>
         <div
           style={{
             display: "grid",
@@ -4253,7 +4273,7 @@ export function App() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>4. 结果预览</h2>
+        <h2 style={{ marginTop: 0 }}>9. 结果预览</h2>
         <p style={{ marginTop: 0, color: "#57606a", fontSize: 13 }}>
           这里只展示前 20 行，够你确认结构和错误分布，不把界面做成第二个 Excel。
         </p>
@@ -4493,7 +4513,7 @@ export function App() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>4. 运行日志</h2>
+        <h2 style={{ marginTop: 0 }}>10. 运行日志</h2>
         <p style={{ marginTop: 0, color: "#57606a", fontSize: 13 }}>
           这里直接读取 Python 引擎最近的标准输出和标准错误，出问题先看这里。
         </p>

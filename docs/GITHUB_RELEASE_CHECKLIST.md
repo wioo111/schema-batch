@@ -6,11 +6,11 @@
 - 已补 `.env.example`
 - 已补最小输入样例 `examples/minimal-comments.csv`
 - 已清理 `dist/` 与 `__pycache__/`
-- 已补充 `examples/`、`templates/`、`PROJECT_STATUS.md`、`docs/REPO_SKELETON.md` 的说明
+- 已补充 `examples/`、`templates/` 与发布说明文档
 - 已补正式 `LICENSE`
-- 已补 `CONTRIBUTING.md`
-- 已补 `CODE_OF_CONDUCT.md`
-- 已补 `SECURITY.md`
+- 已补 `.github/CONTRIBUTING.md`
+- 已补 `.github/CODE_OF_CONDUCT.md`
+- 已补 `.github/SECURITY.md`
 - 已补 `docs/BUILD_RELEASE.md`
 - 已补 GitHub Issue / PR 模板
 

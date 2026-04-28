@@ -1,4 +1,4 @@
-# Universal Data Refiner
+# SchemaBatch
 
 一个面向开源发布的桌面式 LLM 批处理工具。
 
@@ -23,11 +23,12 @@
 - `React + TypeScript + Vite` 前端工作台
 - `Tauri + Rust` 本地桌面桥接层
 - `Python` 批处理引擎
+- 发布版内置引擎封装
 - 图形化流程工作台
 - 程序内数据录入与表格编辑
 - 模板向导、Ready Check、结果预览、日志面板
 
-当前仍然处于开源 MVP 阶段，适合开发态运行和功能验证；安装包与正式发行流程还没有收尾。
+当前仍然处于开源 MVP 阶段，但已经开始收口发布版链路：桌面安装包会内置批处理引擎，不要求最终用户手动安装 Python。
 
 ## 已有能力
 
@@ -78,12 +79,21 @@ npm run tauri dev
 
 安装包构建与发布说明见 `docs/BUILD_RELEASE.md`。
 
-### 方式二：直接运行 Python 引擎
+### 方式二：下载安装包直接使用
+
+适合普通用户。
+
+- 去 GitHub 的 `Releases` 页面下载 Windows 安装包
+- 安装后直接打开应用
+- 运行时只需要你自己的模型 API Key
+- 不需要单独安装 `Python / Node.js / Rust`
+
+### 方式三：直接运行 Python 引擎
 
 适合只验证底层批处理能力。
 
 ```powershell
-python .\universal_engine.py `
+python .\schema_batch_engine.py `
   -c .\examples\comment-analysis.task.yaml `
   -i .\examples\minimal-comments.csv `
   -o .\output.xlsx `
@@ -99,9 +109,8 @@ project-root/
   src-tauri/        Tauri/Rust 桌面桥接层
   templates/        内置任务模板
   examples/         示例输入与说明
-  legacy/           历史参考代码
-  docs/             架构和迁移文档
-  universal_engine.py
+  docs/             发布与补充说明
+  schema_batch_engine.py
 ```
 
 ### 关键文件
@@ -110,14 +119,12 @@ project-root/
   - 当前桌面工作台主界面
 - `src-tauri/src/engine.rs`
   - 本地文件、预览、预检、运行调度桥接
-- `universal_engine.py`
+- `schema_batch_engine.py`
   - 真正执行 LLM 批处理的引擎
 - `templates/comment-analysis.template.json`
   - 当前内置模板样例
 - `examples/comment-analysis.task.yaml`
   - Python 引擎兼容的示例 YAML 配置
-- `legacy/qwen_batch-v2.py`
-  - 历史原型，仅保留作参考，不参与当前主链路
 
 ## 当前边界
 
@@ -149,15 +156,15 @@ project-root/
 ## 开源仓库基线
 
 - 已补 `LICENSE`
-- 已补 `CONTRIBUTING.md`
-- 已补 `CODE_OF_CONDUCT.md`
-- 已补 `SECURITY.md`
+- 已补 `.github/CONTRIBUTING.md`
+- 已补 `.github/CODE_OF_CONDUCT.md`
+- 已补 `.github/SECURITY.md`
 - 已补 `docs/BUILD_RELEASE.md`
 - 已补 GitHub Issue / PR 模板
 - 仍建议继续增加更多 `examples/` 最小样例
 
 ## 一句话总结
 
-`Universal Data Refiner` 做的不是平台，而是一个面向普通用户的本地批处理工具：
+`SchemaBatch` 做的不是平台，而是一个面向普通用户的本地批处理工具：
 
 > 把表格文本稳定送进 LLM，再把结果可靠落成结构化输出。

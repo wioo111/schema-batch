@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Propose an improvement for Universal Data Refiner
+about: Propose an improvement for SchemaBatch
 title: "[Feature] "
 labels: ["enhancement"]
 assignees: []

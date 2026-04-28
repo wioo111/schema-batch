@@ -8,6 +8,13 @@ __pycache__/
 node_modules/
 dist/
 src-tauri/target/
+src-tauri/binaries/
+.pyinstaller/
+build/
+dist-python/
+src-tauri/target-local/
+src-tauri/target-local2/
+tauri-target-local/
 .udr/
 
 # local data / outputs
@@ -17,8 +24,11 @@ src-tauri/target/
 !examples/*.csv
 !examples/*.xlsx
 !examples/*.xls
+!src-tauri/binaries/.gitkeep
 
 # secrets
 .env
+.env.*
 .env.local
 .env.*.local
+!.env.example
