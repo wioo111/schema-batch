@@ -1,6 +1,6 @@
 [package]
 name = "schema-batch"
-version = "0.1.0"
+version = "0.1.4"
 description = "Desktop shell for SchemaBatch"
 authors = ["SchemaBatch"]
 edition = "2021"
